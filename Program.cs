@@ -6,29 +6,30 @@ using System.Threading.Tasks;
 class Program
 {
     static SemaphoreSlim emptySlots = new SemaphoreSlim(5, 5);
-
     static SemaphoreSlim fullSlots = new SemaphoreSlim(0, 5);
-
     static Random random = new Random();
 
     static async Task Main(string[] args)
     {
         BlockingCollection<int> buffer = new BlockingCollection<int>(new ConcurrentQueue<int>());
 
-        Console.CancelKeyPress += (sender, eventArgs) =>
+        Console.CancelKeyPress += async (sender, eventArgs) =>
         {
-            Console.WriteLine("Ctrl+C detected. Exiting...");
+            Console.WriteLine("Ctrl+C detected. Outputting remaining elements...");
 
+            // Output the remaining elements in the buffer
             buffer.CompleteAdding();
 
             while (buffer.Count > 0)
             {
-                if (buffer.TryTake(out _))
+                if (buffer.TryTake(out var item))
                 {
-                    Thread.Sleep(1000);
+                    Console.WriteLine($"Remaining element: {item}");
+                    await Task.Delay(1000);
                 }
             }
 
+            Console.WriteLine("Remaining elements have been taken out. Exiting...");
             Environment.Exit(0);
         };
 
@@ -59,7 +60,7 @@ class Program
             buffer.Add(item);
             fullSlots.Release();
 
-            Thread.Sleep(1000);
+            await Task.Delay(1000);
         }
     }
 
@@ -73,8 +74,10 @@ class Program
 
             Console.WriteLine($"Consumed by Task {Task.CurrentId}: {item}");
 
-            Thread.Sleep(1500);
+            await Task.Delay(1500);
         }
     }
 }
+
+
 
